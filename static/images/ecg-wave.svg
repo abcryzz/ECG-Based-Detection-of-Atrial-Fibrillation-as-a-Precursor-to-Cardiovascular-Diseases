@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <defs>
+    <!-- ECG line gradient -->
+    <linearGradient id="ecgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#ee5253" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#c0392b" stop-opacity="0.9"/>
+    </linearGradient>
+
+    <!-- For masking the long dash animation -->
+    <mask id="reveal">
+      <rect x="0" y="0" width="800" height="400" fill="white"/>
+      <!-- this rect will move across to reveal the stroke -->
+      <rect id="mask-rect" x="-800" y="0" width="800" height="400" fill="black">
+        <animate 
+          attributeName="x" 
+          from="-800" to="800" 
+          dur="3s" 
+          repeatCount="indefinite" 
+          fill="freeze"/>
+      </rect>
+    </mask>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="400" fill="#fff"/>
+
+  <!-- Minor grid: 50px spacing -->
+  <g stroke="#eee" stroke-width="0.5">
+    <pattern id="minorGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+      <path d="M50 0 L0 0 0 50" fill="none"/>
+    </pattern>
+    <rect width="800" height="400" fill="url(#minorGrid)"/>
+  </g>
+
+  <!-- Major grid: 100px spacing -->
+  <g stroke="#ddd" stroke-width="1">
+    <pattern id="majorGrid" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M100 0 L0 0 0 100" fill="none"/>
+    </pattern>
+    <rect width="800" height="400" fill="url(#majorGrid)"/>
+  </g>
+
+  <!-- ECG path -->
+  <path
+    d="
+      M0,200
+      C40,200 60,200 80,180
+      C90,170 100,220 110,200
+      C120,180 140,300 160,200
+      C180,100 200,300 220,200
+      C240,100 260,230 280,200
+      C300,180 320,200 340,200
+      C360,200 380,190 400,220
+      C420,260 440,100 460,300
+      C480,200 500,200 520,200
+      C540,180 560,230 580,200
+      C600,170 620,300 640,200
+      C660,100 680,300 700,200
+      L800,200
+    "
+    fill="none"
+    stroke="url(#ecgGrad)"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    mask="url(#reveal)"
+  />
+</svg>
+
