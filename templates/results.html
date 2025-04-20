@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-FibroScan | Analysis Results</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/IITR_new_logo_color.b3fdd3ee.png') }}">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        /* Progress bar styling */
+        .progress-container {
+            position: relative;
+            background: #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 24px;
+        }
+        .progress-bar {
+            height: 100%;        /* full container height */
+            background: #007BFF; /* primary color */
+        }
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            color: #fff;          /* high contrast */
+            font-weight: 600;     /* bolder text */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Hide all stat cards by default */
+        .stats-card { display: none; }
+        /* Show only the active stat card */
+        .stats-card.active { display: block; }
+
+        /* Toggle button styles */
+        .stats-toggle { margin: 1em 0; }
+        .stats-toggle button {
+            margin-right: 0.5em;
+            padding: 0.5em 1em;
+            border: none;
+            background: #e0e0e0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .stats-toggle button.active {
+            background: #007BFF;
+            color: white;
+        }
+
+        /* Main tab styles */
+        .tabs { margin-bottom: 1.5em; }
+        .tab-btn { margin-right: 0.5em; padding: 0.5em 1em; border: none; background: #f0f0f0; cursor: pointer; border-radius: 4px; }
+        .tab-btn.active { background: #007BFF; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <img src="{{ url_for('static', filename='images/IITR_new_logo_color.b3fdd3ee.png') }}" alt="IITR Logo" class="logo-img">
+                </div>
+                <div class="logo-text">
+                    <h1>AI-FibroScan</h1>
+                    <p class="tagline">Advanced Cardiac Analysis</p>
+                </div>
+            </div>
+            <a href="/" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Upload</a>
+        </header>
+        
+        <main class="results-main">
+            <!-- Results Summary -->
+            <section class="results-summary">
+                <h2>ECG Analysis Results</h2>
+                <div class="diagnosis-container">
+                    <div class="diagnosis-box {{ 'af-positive' if result.prediction > 0.5 else 'af-negative' }}">
+                        <h3>Diagnosis</h3>
+                        <div class="diagnosis">{{ result.diagnosis }}</div>
+                        <div class="probability">
+                            <span>AF Probability:</span>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: {{ result.prediction * 100 }}%"></div>
+                                <span class="progress-text">{{ "%.2f"|format(result.prediction * 100) }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Detailed Results -->
+            <section class="results-details">
+                <!-- Main Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="ecg">ECG Visualization</button>
+                    <button class="tab-btn" data-tab="stats">Statistical Analysis</button>
+                </div>
+
+                <!-- ECG Visualization Tab -->
+                <div id="ecg" class="tab-content active">
+                    <h3>12-Lead ECG Visualization</h3>
+                    <div class="ecg-plot">
+                        {{ result.ecg_all_html | safe }}
+                    </div>
+                    <div class="ecg-plot-sep">
+                        {{ result.ecg_sep_html | safe }}
+                    </div>
+                    <div class="ecg-explanation">
+                        <h4>Understanding Your ECG</h4>
+                        <p>This visualization shows your ECG data across all 12 leads. Irregular patterns or abnormal shapes may indicate potential cardiac issues.</p>
+                        <p>In atrial fibrillation, you might notice irregular R-R intervals (the distance between consecutive peaks) and absence of clear P waves before each QRS complex.</p>
+                    </div>
+                </div>
+
+                <!-- Statistical Analysis Tab -->
+                <div id="stats" class="tab-content">
+                    <h3>Statistical Comparison</h3>
+                    <p class="stats-intro">Comparing your ECG statistics with typical patterns seen in normal hearts and those with atrial fibrillation:</p>
+
+                    <!-- Mean/Median/Std Toggle -->
+                    <div class="stats-toggle">
+                        <button class="toggle-btn active" data-key="mean">Mean Comparison</button>
+                        <button class="toggle-btn" data-key="median">Median Comparison</button>
+                        <button class="toggle-btn" data-key="std">Std Comparison</button>
+                    </div>
+
+                    <!-- Individual Stat Plots -->
+                    <div class="stats-grid">
+                        {% for key, html in result.stats_plots.items() %}
+                            {% set stat = key.split('_')[0] %}
+                            <div class="stats-card" id="card-{{ stat }}">
+                                <h4>{{ stat|title }} by Lead</h4>
+                                {{ html | safe }}
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Statistics Table -->
+                    <div class="stats-table">
+                        <h4>Your ECG Statistics by Lead</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Lead</th>
+                                    <th>Mean</th>
+                                    <th>Median</th>
+                                    <th>Std</th>
+                                    <th>Min</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lead, stats in result.statistics.items() %}
+                                <tr>
+                                    <td>{{ lead }}</td>
+                                    <td>{{ "%.4f"|format(stats['mean']) }}</td>
+                                    <td>{{ "%.4f"|format(stats['median']) }}</td>
+                                    <td>{{ "%.4f"|format(stats['std']) }}</td>
+                                    <td>{{ "%.4f"|format(stats['min']) }}</td>
+                                    <td>{{ "%.4f"|format(stats['max']) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Disclaimer -->
+            <section class="disclaimer">
+                <h3><i class="fas fa-exclamation-circle"></i> Important Notice</h3>
+                <p>This analysis is provided for educational purposes only and should not replace professional medical advice. If you have concerns about your heart health, please consult with a healthcare professional.</p>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>&copy; 2025 AI-FibroScan. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Inline JS for tabs and toggles -->
+    <script>
+        // Main tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Stats toggle switching
+        const cards = document.querySelectorAll('.stats-card');
+        const toggles = document.querySelectorAll('.toggle-btn');
+
+        function showCard(key) {
+            cards.forEach(card => {
+                card.classList.toggle('active', card.id === 'card-' + key);
+            });
+        }
+
+        toggles.forEach(btn => {
+            btn.addEventListener('click', () => {
+                toggles.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                showCard(btn.dataset.key);
+            });
+        });
+
+        // Initialize default stat
+        showCard('mean');
+    </script>
+</body>
+</html>
