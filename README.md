@@ -41,7 +41,7 @@ ecg_af_detector/
 - Flask
 - NumPy
 - Pandas
-- Matplotlib
+- Plotly
 - SciPy
 
 ## Installation
